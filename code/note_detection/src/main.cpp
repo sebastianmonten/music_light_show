@@ -1,22 +1,64 @@
 #include <Arduino.h>
+#include <esp_now.h>
+#include <WiFi.h>
+
+//struct of the recieved data
+typedef struct struct_message {
+  int tone;
+} struct_message;
+
+#define SENDER
+//#define RECIEVER
+#define DEBUG
 
 
 
+#ifdef SENDER
+#ifdef RECIEVER
+#error can not define both SENDER and RECIEVER!
+#endif
+
+
+//////////////////////////////EPS_NOW
+// the mac address we are sending to
+uint8_t broadcastAddress[] = {0x08, 0x3A, 0xF2, 0xA9, 0x8A, 0xA8};
+
+// create instance of struct_message called myData
+struct_message myData;
+
+// callback funciton that will be executed when a message is sent. Here the funciton prints if the message was successfully delivered or not
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+void send(){
+  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+  // send                       the mac adress of reciever, the first element of myData list, size of myData
+  
+  // check if the message was sent successfully
+  if (result == ESP_OK) { // if the result maches the ESP thumbs up value
+    Serial.println("Sent with success");
+  }
+  else {
+    Serial.println("Error sending the data");
+  }
+}
+//////////////////////////////ESP_NOW
 
 //---------------------------------------------------------------------------//
 int  in[128];
 byte NoteV[13]={8,23,40,57,76,96,116,138,162,187,213,241,255}; //data for note detection based on frequency
 float f_peaks[5]; // top 5 frequencies peaks in descending order
-#define MIC_PIN 13   // change as per Microphone pin
-#define ZERO_SHIFT 500 // initially set to 500
-#define THRESHOLD 50 // initially set to 3
+#define MIC_PIN 32   // change as per Microphone pin
+#define ZERO_SHIFT 180 // initially set to 500
+#define THRESHOLD 70 // initially set to 3
 //---------------------------------------------------------------------------//
 
 
 //-----------------------------FFT Function----------------------------------------------//
 // Documentation on EasyFFT:https://www.instructables.com/member/abhilash_patel/instructables/
 // EasyFFT code optimised for 128 sample size to reduce mamory consumtion
-
 float FFT(byte N,float Frequency)
 {
 byte data[8]={1,2,4,8,16,32,64,128};
@@ -133,7 +175,6 @@ c=0;
 // Contact: abhilashpatel121@gmail.com
 // This code written for arduino Nano board (should also work for UNO)
 // This code won't work for any board having RAM less than 2kb,
-
 void Tone_det()
 { long unsigned int a1,b,a2;
   float a;
@@ -142,6 +183,7 @@ void Tone_det()
   a1=micros();
         for(int i=0;i<128;i++)
           {
+            //Serial.println("analogRead now");
             a=analogRead(MIC_PIN)-ZERO_SHIFT;     //rough zero shift
             //utilising time between two sample for windowing & amplitude calculation
             sum1=sum1+a;              //to average value
@@ -200,18 +242,23 @@ k=0;j=0;
        // where, 0=c;1=c#,2=D;3=D#;.. 11=B;      
        //a2=micros(); // time check
         k=j;
-        if(k==0) {Serial.println('C');}
-        if(k==1) {Serial.print('C');Serial.println('#');}
-        if(k==2) {Serial.println('D');}
-        if(k==3) {Serial.print('D');Serial.println('#');}
-        if(k==4) {Serial.println('E');}
-        if(k==5) {Serial.println('F');}
-        if(k==6) {Serial.print('F');Serial.println('#');}
-        if(k==7) {Serial.println('G');}
-        if(k==8) {Serial.print('G');Serial.println('#');}
-        if(k==9) {Serial.println('A');}
-        if(k==10){Serial.print('A');Serial.println('#');}
-        if(k==11){Serial.println('B');}
+        // if(k==0) {Serial.println('C');}
+        // if(k==1) {Serial.print('C');Serial.println('#');}
+        // if(k==2) {Serial.println('D');}
+        // if(k==3) {Serial.print('D');Serial.println('#');}
+        // if(k==4) {Serial.println('E');}
+        // if(k==5) {Serial.println('F');}
+        // if(k==6) {Serial.print('F');Serial.println('#');}
+        // if(k==7) {Serial.println('G');}
+        // if(k==8) {Serial.print('G');Serial.println('#');}
+        // if(k==9) {Serial.println('A');}
+        // if(k==10){Serial.print('A');Serial.println('#');}
+        // if(k==11){Serial.println('B');}
+        if (k >= 0 && k <= 11) {
+          myData.tone = k;
+          send();
+        }
+        
        }
 }
 
@@ -224,7 +271,37 @@ k=0;j=0;
 
 
 void setup() {
-Serial.begin(115200);
+  Serial.begin(115200);
+
+  //////////////////////////////ESP_NOW
+  WiFi.mode(WIFI_STA); // set the device as a Wi-Fi station
+  //Initialize ESP-NOW:
+  if (esp_now_init() != ESP_OK) {
+      // esp_now_init() returns value of ESP_OK if initialization succeded, or other values if there was a faliure
+    Serial.println("Error initializing ESP-NOW");
+    return; // cancel the program?
+  }
+
+  // initialize a callback function to be called whenever a message is sent, here we use our function OnDataSent
+  esp_now_register_send_cb(OnDataSent);
+
+  // here we have to pair our board with another ESP-NOW device o send data
+  //Register peer
+  esp_now_peer_info_t peerInfo; // create an instance of the struct esp_now_peer_info, called peerInfo
+                                // the struct contains ESPNOW peer information parameters
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6); //copy the 6 element long array of the broadcastAddress to the peer_addr slot in peerInfo
+  peerInfo.channel = 0; // slot of peerInfo: Wi-Fi channel that peer uses to send/receive ESPNOW data.
+                        // If the value is 0, use the current channel which station or softap is on.
+                        // Otherwise, it must be set as the channel that station or softap is on.
+  peerInfo.encrypt = false; // do not encrypt the data to be sent
+
+  //Add peer
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    // if we give the address of the esp_now_peer_info_t instance peerInfo to esp_now_add_peer and it does not return OK value
+    Serial.println("Failed to add peer");
+    return; // cancel
+  }
+  //////////////////////////////ESP_NOW
 }
 
 
@@ -233,4 +310,43 @@ void loop()
   Tone_det();
 }
 
+#endif
 
+#ifdef RECIEVER
+// create an instance of struct_message called myData
+struct_message myData;
+
+// callback function that will be executed when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+                // import mac value as a pointer
+                // import incomingData value as a pointer
+                // import len as an integer
+  memcpy(&myData, incomingData, sizeof(myData));
+        // copy incompingData array to the address of myData (has to specify the size) first element 
+  // print all the recieved data
+  // Serial.print("Bytes received: ");
+  // Serial.println(len);
+  // Serial.print("Char: ");
+  Serial.print("tone: ");
+  Serial.println(myData.tone);
+}
+
+void setup(){
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+
+  // initialize ESP-NOW and check if there is an error (in that case cancel the setup)
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Register for a callback function that will be called when data is received.
+  esp_now_register_recv_cb(OnDataRecv);
+
+}
+
+
+void loop(){
+}
+#endif
