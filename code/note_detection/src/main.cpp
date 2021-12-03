@@ -317,7 +317,12 @@ void loop()
 
 #ifdef RECIEVER
 
-
+///////////////////////////FASTLED
+#include <FastLED.h>
+#define NUM_LEDS 12
+#define LED_PIN 13
+CRGB leds[NUM_LEDS];
+///////////////////////////!FASTLED
 
 // create an instance of struct_message called myData
 struct_message myData;
@@ -330,11 +335,17 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
         // copy incompingData array to the address of myData (has to specify the size) first element 
   // print all the recieved data
-  Serial.print("Bytes received: ");
-  Serial.println(len);
+  //Serial.println(len);
   // Serial.print("Char: ");
   Serial.print("tone: ");
   Serial.println(myData.tone);
+
+  // update the leds
+  ///////////////////////////FASTLED
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  leds[myData.tone] = CRGB::Red;
+  FastLED.show();
+  ///////////////////////////!FASTLED
 }
 
 void setup(){
@@ -350,9 +361,16 @@ void setup(){
   // Register for a callback function that will be called when data is received.
   esp_now_register_recv_cb(OnDataRecv);
 
+  ///////////////////////////FASTLED
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.setBrightness(40);
+  ///////////////////////////!FASTLED
+
 }
 
 
 void loop(){
+  fadeToBlackBy(leds, NUM_LEDS, 2);
+  FastLED.show();
 }
 #endif
