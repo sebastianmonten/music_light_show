@@ -48,9 +48,9 @@ void send(){
 
 //---------------------------------------------------------------------------//
 int  in[128];
-byte NoteV[13]={8,23,40,57,76,96,116,138,162,187,213,241,255}; //data for note detection based on frequency
+byte NoteV[13]={8,23,40,57,76,96,116,138,162,187,213,241,255};  //data for note detection based on frequency
 float f_peaks[5]; // top 5 frequencies peaks in descending order
-#define MIC_PIN 32   // change as per Microphone pin
+#define MIC_PIN 32   // change as per Microphone pin OBS 32 seems to be one of the few pins that works at the same time as wifi is active
 #define ZERO_SHIFT 180 // initially set to 500
 #define THRESHOLD 70 // initially set to 3
 //---------------------------------------------------------------------------//
@@ -312,7 +312,13 @@ void loop()
 
 #endif
 
+
+
+
 #ifdef RECIEVER
+
+
+
 // create an instance of struct_message called myData
 struct_message myData;
 
@@ -324,8 +330,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
         // copy incompingData array to the address of myData (has to specify the size) first element 
   // print all the recieved data
-  // Serial.print("Bytes received: ");
-  // Serial.println(len);
+  Serial.print("Bytes received: ");
+  Serial.println(len);
   // Serial.print("Char: ");
   Serial.print("tone: ");
   Serial.println(myData.tone);
