@@ -7,8 +7,8 @@ typedef struct struct_message {
   int tone;
 } struct_message;
 
-#define SENDER
-//#define RECIEVER
+//#define SENDER
+#define RECIEVER
 #define DEBUG
 
 
