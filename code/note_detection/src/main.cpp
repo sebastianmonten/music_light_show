@@ -319,13 +319,43 @@ void loop()
 
 ///////////////////////////FASTLED
 #include <FastLED.h>
-#define NUM_LEDS 12
-#define LED_PIN 13
-CRGB leds[NUM_LEDS];
+// #define NUM_LEDS 12
+// #define LED_PIN 13
+// CRGB leds[NUM_LEDS];
 ///////////////////////////!FASTLED
 
 // create an instance of struct_message called myData
 struct_message myData;
+
+
+
+///////////////////////////THE STRIPS OOP
+#define NUM_LEDS 12
+#define LED_PIN 13
+CRGB leds[NUM_LEDS];
+
+
+
+
+#include <LED_Segment.h>
+#include <LED_Segment.cpp>
+LED_Segment segment_C;
+
+
+////////////////////////////////////
+
+void flash(int tone){
+  switch (tone)
+  {
+  case 0:
+    fill_solid(leds, NUM_LEDS, CRGB::Red);
+    FastLED.show();
+    break;
+  
+  default:
+    break;
+  }
+}
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -342,9 +372,10 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
   // update the leds
   ///////////////////////////FASTLED
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
-  leds[myData.tone] = CRGB::Red;
-  FastLED.show();
+  flash(myData.tone);
+  // fill_solid(leds, NUM_LEDS, CRGB::Black);
+  // leds[myData.tone] = CRGB::Red;
+  // FastLED.show();
   ///////////////////////////!FASTLED
 }
 
@@ -366,11 +397,20 @@ void setup(){
   FastLED.setBrightness(40);
   ///////////////////////////!FASTLED
 
+
+
+  //////////////////////////////////////// OOP
+  segment_C.Begin(leds, 0, NUM_LEDS);
+  /////////////////////////////////////////////
+  
+
 }
 
 
+
+
 void loop(){
-  fadeToBlackBy(leds, NUM_LEDS, 2);
+  fadeToBlackBy(leds, NUM_LEDS, 2); // gradually fade out all the
   FastLED.show();
 }
 #endif
