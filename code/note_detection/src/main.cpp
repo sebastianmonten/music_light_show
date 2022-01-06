@@ -330,19 +330,15 @@ struct_message myData;
 
 
 ///////////////////////////THE STRIPS OOP
-#define NUM_LEDS 12
 #define LED_PIN 13
+#define NUM_LEDS 12
 CRGB leds[NUM_LEDS];
 
+#include "LED_Segment.h"
+LED_Segment segment_C(leds, NUM_LEDS, 0);
 
 
-
-#include <LED_Segment.h>
-#include <LED_Segment.cpp>
-LED_Segment segment_C;
-
-
-////////////////////////////////////
+////////////////////////////!THE STRIPS OOP
 
 void flash(int tone){
   switch (tone)
@@ -400,7 +396,7 @@ void setup(){
 
 
   //////////////////////////////////////// OOP
-  segment_C.Begin(leds, 0, NUM_LEDS);
+  //segment_C.Begin(leds, 0, NUM_LEDS);
   /////////////////////////////////////////////
   
 

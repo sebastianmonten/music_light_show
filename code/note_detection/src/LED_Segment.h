@@ -1,12 +1,18 @@
+#ifndef MY_LED_SEGMENT_H
+#define MY_LED_SEGMENT_H
+
+
 #include <Arduino.h>
 #include <FastLED.h>
 
 class LED_Segment {
-  public:
-  void Begin(CRGB [12], int, int);
-  
   private:
-  CRGB _led_strip[12];
-  int _start_index;
-  int _num_led;
-};  
+    CRGB led_strip;
+    byte num_leds;
+    byte start_index;
+
+  public:
+    LED_Segment(CRGB led_strip[], byte num_leds, byte start_index);
+};
+
+#endif
