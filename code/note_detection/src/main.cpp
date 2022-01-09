@@ -327,31 +327,105 @@ void loop()
 // create an instance of struct_message called myData
 struct_message myData;
 
+////////////////////////////////TIMING
+#define DEBOUNCE_TIME 5
+////////////////////////////////!TIMING
+
+
 
 
 ///////////////////////////THE STRIPS OOP
-#define LED_PIN 13
-#define NUM_LEDS 12
-CRGB leds[NUM_LEDS];
+#define LED_PIN_C 13
+#define NUM_LEDS_C 12
+CRGB leds_C[NUM_LEDS_C];
 
-#include "LED_Segment.h"
-LED_Segment segment_C(leds, NUM_LEDS, 0);
+#define LED_PIN_Db_D_Eb 12
+#define NUM_LEDS_Db_D_Eb 22
+CRGB leds_Db_D_Eb[NUM_LEDS_Db_D_Eb];
+
+// class for a segment of a led strip
+class LED_Segment {
+  private:
+    byte num_leds;
+    byte start_index;
+    byte tone;
+    byte end_index;
+
+    unsigned long prev_time = 0;
+
+    // INTERNAL GETTER FOR THE RIGHT CRGB INSTANCE
+    CRGB *get_LED_array() { // declare a variable that holds a pointer
+      switch (tone)
+      {
+      case 0:
+        Serial.println("case 0");
+        return leds_C;
+        break;
+      case 1:
+        Serial.println("case 1");
+        return leds_Db_D_Eb;
+        break;
+      
+      default:
+        break;
+      }
+    }
+  
+  public:
+    // CONSTRUCTOR
+    LED_Segment(byte tone_, byte start_index_, byte num_leds_) {
+      tone = tone_;
+      num_leds = num_leds_;
+      start_index = start_index_;
+      end_index = start_index + num_leds;
+    }
+
+    // FUNCTIONS
+    void red() {
+      for (int i = start_index; i < end_index; i++) {
+        get_LED_array()[i] = CRGB::Red;
+      }
+      FastLED.show();
+    }
+
+    void flash() {
+      if (millis()-prev_time > DEBOUNCE_TIME) {
+        prev_time = millis();
 
 
+        for (int i = start_index; i < end_index; i++) {
+          get_LED_array()[i] = CRGB::Red;
+          
+          // delay(4);
+        }
+        FastLED.show();
+        
+        
+      }
+    }
+  
+};
+LED_Segment leds0(0, 0, 12);
+LED_Segment leds1(1, 0, 12);
 ////////////////////////////!THE STRIPS OOP
 
-void flash(int tone){
-  switch (tone)
+void flash(byte tone) {
+
+  switch (myData.tone)
   {
   case 0:
-    fill_solid(leds, NUM_LEDS, CRGB::Red);
-    FastLED.show();
+    leds0.flash();
+    break;
+  case 3:
+    leds1.flash();
     break;
   
   default:
     break;
   }
+
 }
+
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
@@ -369,9 +443,6 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   // update the leds
   ///////////////////////////FASTLED
   flash(myData.tone);
-  // fill_solid(leds, NUM_LEDS, CRGB::Black);
-  // leds[myData.tone] = CRGB::Red;
-  // FastLED.show();
   ///////////////////////////!FASTLED
 }
 
@@ -389,7 +460,8 @@ void setup(){
   esp_now_register_recv_cb(OnDataRecv);
 
   ///////////////////////////FASTLED
-  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, LED_PIN_C, GRB>(leds_C, NUM_LEDS_C);
+  FastLED.addLeds<WS2812B, LED_PIN_Db_D_Eb, GRB>(leds_Db_D_Eb, NUM_LEDS_Db_D_Eb);
   FastLED.setBrightness(40);
   ///////////////////////////!FASTLED
 
@@ -406,7 +478,8 @@ void setup(){
 
 
 void loop(){
-  fadeToBlackBy(leds, NUM_LEDS, 2); // gradually fade out all the
+  fadeToBlackBy(leds_C, NUM_LEDS_C, 2); // gradually fade out all the
+  fadeToBlackBy(leds_Db_D_Eb, NUM_LEDS_Db_D_Eb, 2); // gradually fade out all the
   FastLED.show();
 }
 #endif

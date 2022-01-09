@@ -13,6 +13,7 @@ class LED_Segment {
 
   public:
     LED_Segment(CRGB led_strip[], byte num_leds, byte start_index);
+    void fill_red();
 };
 
 #endif

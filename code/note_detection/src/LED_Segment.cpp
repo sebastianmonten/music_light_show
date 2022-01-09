@@ -1,5 +1,7 @@
 #include "LED_Segment.h"
 
+
+
 LED_Segment::LED_Segment(CRGB led_strip[], byte num_leds, byte start_index) {
     // attempt 1:
     // this->led_strip = led_strip;
@@ -16,7 +18,12 @@ LED_Segment::LED_Segment(CRGB led_strip[], byte num_leds, byte start_index) {
     for (int i = 0; i < num_leds; i++) {
         this->led_strip[i] = led_strip[i];
     }
-
     this->num_leds = num_leds;
     this->start_index = start_index;
 }
+
+void LED_Segment::fill_red() {
+    fill_solid(& led_strip, num_leds, CRGB::Red);
+    FastLED.show();
+}
+
