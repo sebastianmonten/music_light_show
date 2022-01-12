@@ -335,13 +335,14 @@ struct_message myData;
 
 
 ///////////////////////////THE STRIPS OOP
-#define LED_PIN_C 13
-#define NUM_LEDS_C 12
+#define LED_PIN_C 12
+#define NUM_LEDS_C 60
 CRGB leds_C[NUM_LEDS_C];
 
-#define LED_PIN_Db_D_Eb 12
+#define LED_PIN_Db_D_Eb 13
 #define NUM_LEDS_Db_D_Eb 22
 CRGB leds_Db_D_Eb[NUM_LEDS_Db_D_Eb];
+
 
 // class for a segment of a led strip
 class LED_Segment {
@@ -351,18 +352,29 @@ class LED_Segment {
     byte tone;
     byte end_index;
 
+    // variable for keeping timestamp of last time this segment was called to light up
     unsigned long prev_time = 0;
+
+    // timestamp when this segment actually lighted up
+    unsigned long prev_tone_time = 0;
+    
+    // boolean for if the tone has ben played repeatedly and its time for some disco effects
+    int time_consecutive_notes = 150;
+    int tone_count = 0;
+    bool disco_time = false;
+    // int disco_rate = 10;
+    unsigned long prev_blink = 0;
+    int disco_index = start_index;
+    bool disco_up = true;
 
     // INTERNAL GETTER FOR THE RIGHT CRGB INSTANCE
     CRGB *get_LED_array() { // declare a variable that holds a pointer
       switch (tone)
       {
       case 0:
-        Serial.println("case 0");
         return leds_C;
         break;
       case 1:
-        Serial.println("case 1");
         return leds_Db_D_Eb;
         break;
       
@@ -381,50 +393,128 @@ class LED_Segment {
     }
 
     // FUNCTIONS
-    void red() {
-      for (int i = start_index; i < end_index; i++) {
-        get_LED_array()[i] = CRGB::Red;
-      }
-      FastLED.show();
+
+    bool get_disco_state() {
+      return disco_time;
+    }
+
+
+    void disco() {
+      // BULLET FUNCTION
+
+
+
+      // if (millis() - prev_blink > disco_rate) {
+
+
+        if (disco_up) {
+          if (disco_index > start_index) {
+            get_LED_array()[disco_index-1] = CRGB::Black;
+          }
+          get_LED_array()[disco_index] = CRGB::Blue;
+          FastLED.show();
+          disco_index++;
+          if (disco_index >= start_index + num_leds-1) {
+            disco_up = false;
+          }
+        } else {
+          if (disco_index < start_index + num_leds-1) {
+            get_LED_array()[disco_index+1] = CRGB::Black;
+          }
+          get_LED_array()[disco_index] = CRGB::Blue;
+          FastLED.show();
+          disco_index--;
+          if (disco_index <= start_index) {
+            disco_up = true;
+          }
+        }
+
+      //}
+      
+
+      // for (int i = 0; i < num_leds; i++) {
+      //     get_LED_array()[i] = CRGB::Red;
+      //     FastLED.show();
+      //     delay(50);
+      //     get_LED_array()[i] = CRGB::Black;
+      // }
+      // for (int i = num_leds-1; i >= 0; i--) {
+      //     get_LED_array()[i] = CRGB::Red;
+      //     FastLED.show();
+      //     delay(50);
+      //     get_LED_array()[i] = CRGB::Black;
+      // }
+      
     }
 
     void flash() {
+
+      
+
+
       if (millis()-prev_time > DEBOUNCE_TIME) {
         prev_time = millis();
 
+        if (millis() - prev_tone_time < time_consecutive_notes) {
+          Serial.print("prev_tone_time: "); Serial.println(prev_tone_time);
+          Serial.print("tone_count: "); Serial.println(tone_count);
+          tone_count++;
+          if (tone_count > 10) {
+            // if (disco_rate < 500) {disco_rate += 10;}
+            disco_time = true;
+            Serial.println();
+            Serial.println("Disco time!");
+          }
+          
+        } else {
+          tone_count = 0;
+          disco_time = false;
+          // disco_rate = 1;
+          Serial.println("Discotime over! :(");
+        }
+        prev_tone_time = millis();
+        Serial.println("playing tone");
+
+        if (disco_time) {
+          disco();
+          return;
+        }
 
         for (int i = start_index; i < end_index; i++) {
-          get_LED_array()[i] = CRGB::Red;
-          
-          // delay(4);
+          // Serial.print(i); Serial.print(", "); 
+          get_LED_array()[i] = CRGB::Yellow;
         }
-        FastLED.show();
+        // Serial.print("\n");
+        // Serial.print("start_index: "); Serial.print(start_index); Serial.print(", end_index: "); Serial.print(end_index);
+        // Serial.print("\n");
+        // FastLED.show();
         
         
       }
     }
   
 };
-LED_Segment leds0(0, 0, 12);
-LED_Segment leds1(1, 0, 12);
+
+LED_Segment array_of_segments[] = {
+  LED_Segment(0, 0, 12),
+  LED_Segment(1, 0, 12),
+  LED_Segment(1, 12, 10)
+};
+
 ////////////////////////////!THE STRIPS OOP
-
-void flash(byte tone) {
-
-  switch (myData.tone)
-  {
-  case 0:
-    leds0.flash();
-    break;
-  case 3:
-    leds1.flash();
-    break;
-  
-  default:
-    break;
-  }
-
-}
+// void flash(byte tone) {
+//   switch (myData.tone)
+//   {
+//   case 0:
+//     array_of_segments[0].flash();
+//     break;
+//   case 3:
+//     array_of_segments[1].flash();
+//     break;
+//   default:
+//     break;
+//   }
+// }
 
 
 // callback function that will be executed when data is received
@@ -442,7 +532,10 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
   // update the leds
   ///////////////////////////FASTLED
-  flash(myData.tone);
+  //flash(myData.tone);
+  if(myData.tone < 3) {
+    array_of_segments[myData.tone].flash();
+  }
   ///////////////////////////!FASTLED
 }
 
@@ -478,8 +571,16 @@ void setup(){
 
 
 void loop(){
-  fadeToBlackBy(leds_C, NUM_LEDS_C, 2); // gradually fade out all the
-  fadeToBlackBy(leds_Db_D_Eb, NUM_LEDS_Db_D_Eb, 2); // gradually fade out all the
+
+
+  // for(int i = 0; i < 3; i++) {
+  //   if (array_of_segments[i].get_disco_state()) {
+  //     array_of_segments[i].disco();
+  //   }
+  // }
+
+  fadeToBlackBy(leds_C, NUM_LEDS_C, 3); // gradually fade out all the
+  fadeToBlackBy(leds_Db_D_Eb, NUM_LEDS_Db_D_Eb, 3); // gradually fade out all the
   FastLED.show();
 }
 #endif
