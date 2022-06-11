@@ -348,13 +348,13 @@ int prev_tone = 0;
 #define NUM_LEDS_D_Eb 22
 // E_F_Gb
 #define LED_PIN_E_F_Gb 26
-#define NUM_LEDS_E_F_Gb 36
+#define NUM_LEDS_E_F_Gb 26
 // G_Ab_A
 #define LED_PIN_G_Ab_A 27
-#define NUM_LEDS_G_Ab_A 36
+#define NUM_LEDS_G_Ab_A 26
 // Eb_Bb
 #define LED_PIN_Eb_Bb 14
-#define NUM_LEDS_Eb_Bb 22
+#define NUM_LEDS_Eb_Bb 21
 // B
 #define LED_PIN_B 13
 #define NUM_LEDS_B 24
@@ -363,7 +363,7 @@ int prev_tone = 0;
 #define LED_PIN_MENU 18
 #define NUM_LEDS_MENU 8
 CRGB ledstrip_menu[NUM_LEDS_MENU];
-byte menu_index = NUM_LEDS_MENU-1;
+int menu_index = NUM_LEDS_MENU-1;
 #define PIN_BUTTON_R 16
 #define PIN_BUTTON_L 17
 #define PIN_BUTTON_TOGGLE_RECEIVE 21    
@@ -371,6 +371,10 @@ byte menu_index = NUM_LEDS_MENU-1;
 bool receive_state = true;
 
 
+/////////////////////////////////////////////////////ANIMATION VARS
+bool polizei_toggle = true;
+int tmp_indx = 0;
+//////////////////////////////////////////////////////
 
 
 
@@ -431,7 +435,40 @@ class LED_Segment {
         FastLED.show();
       }
     }
-  
+
+    void flash_red() {
+      // happens with intervals of at lest DEBOUNCE_TIME ms
+      if (millis()-prev_time > DEBOUNCE_TIME) {
+        prev_time = millis();
+
+
+        // Set all the leds in this LED segment to yellow
+        // Serial.print("i = ");
+        for (int i = start_index; i < end_index; i++) {
+          // Serial.print(i); Serial.print(", ");
+          get_LED_array()[i] = CRGB::Red;
+        }
+        // Serial.println(); Serial.println("done with for-loop in flash()");
+        FastLED.show();
+      }
+    }
+    void flash_blue() {
+      // happens with intervals of at lest DEBOUNCE_TIME ms
+      if (millis()-prev_time > DEBOUNCE_TIME) {
+        prev_time = millis();
+
+
+        // Set all the leds in this LED segment to yellow
+        // Serial.print("i = ");
+        for (int i = start_index; i < end_index; i++) {
+          // Serial.print(i); Serial.print(", ");
+          get_LED_array()[i] = CRGB::Blue;
+        }
+        // Serial.println(); Serial.println("done with for-loop in flash()");
+        FastLED.show();
+      }
+    } 
+    
 };
 
 
@@ -461,7 +498,7 @@ class Button {
       }
       if(millis() - last_debounce_time > debounce_delay) {
         // Update the 'state' attribute only if debounce is checked
-        Serial.println("updating state!");
+        // Serial.println("updating state!");
         state = new_reading;
       }
       last_reading = new_reading;
@@ -490,16 +527,16 @@ LED_Segment array_of_segments[] = {
   LED_Segment(0, 0, NUM_LEDS_C),  // 0 : C
   LED_Segment(1, 0, NUM_LEDS_Db), // 1 : Db
   LED_Segment(2, 12, 10),         // 2 : D
-  LED_Segment(2, 0, 12),          // 3 : Eb <--
-  LED_Segment(3, 24, 12),         // 4 : E
-  LED_Segment(3, 12, 12),         // 5 : F
-  LED_Segment(3, 0, 12),          // 6 : Gb
-  LED_Segment(4, 0, 12),          // 7 : G
-  LED_Segment(4, 12, 12),         // 8 : Ab
-  LED_Segment(4, 24, 12),         // 9 : A
+  LED_Segment(2, 0, 12),          // 3a: Eb <--
+  LED_Segment(3, 14, 12),         // 4 : E
+  LED_Segment(3, 7, 7),           // 5 : F
+  LED_Segment(3, 0, 7),           // 6 : Gb
+  LED_Segment(4, 0, 7),           // 7 : G
+  LED_Segment(4, 7, 7),           // 8 : Ab
+  LED_Segment(4, 14, 12),         // 9 : A
   LED_Segment(5, 0, 12),          // 3b: Eb <--
-  LED_Segment(5, 12, 10),         // 10: Bb
-  LED_Segment(6, 0, 24)           // 11: B
+  LED_Segment(5, 12, 9),          // 10: Bb     (removed one led here, thus 9 not 10)
+  LED_Segment(6, 0, NUM_LEDS_B)   // 11: B
 };
 //////////////////////////////////////////////////////!THE STRIPS OOP
 
@@ -508,29 +545,35 @@ Button button_L(PIN_BUTTON_L);
 Button button_R(PIN_BUTTON_R);
 Button button_recieve(PIN_BUTTON_TOGGLE_RECEIVE);
 
-// // callback function that will be executed when data is received
-// void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-//                 // import mac value as a pointer
-//                 // import incomingData value as a pointer
-//                 // import len as an integer
-//   memcpy(&myData, incomingData, sizeof(myData));
-//         // copy incompingData array to the address of myData (has to specify the size) first element 
-//   // print all the recieved data
-//   //Serial.println(len);
-//   // Serial.print("Char: ");
-//   Serial.print("tone: ");
-//   Serial.println(myData.tone);
+// callback function that will be executed when data is received
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+                // import mac value as a pointer
+                // import incomingData value as a pointer
+                // import len as an integer
+  memcpy(&myData, incomingData, sizeof(myData));
+        // copy incompingData array to the address of myData (has to specify the size) first element 
+  // print all the recieved data
+  //Serial.println(len);
+  // Serial.print("Char: ");
+  Serial.print("tone: ");
+  Serial.println(myData.tone);
 
-//   ///////////////////////////FASTLED
-//   if(myData.tone < 3) {
-//     array_of_segments[myData.tone].flash();
-//   }
-//   ///////////////////////////!FASTLED
-// }
+  ///////////////////////////FASTLED
+  if (receive_state) {
+    if(myData.tone < 13 || myData.tone >= 0) {
+      Serial.println("flash!");
+      array_of_segments[myData.tone].flash();
+    }
+  }
+  ///////////////////////////!FASTLED
+}
 
 void setup(){
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
+
+  
+  delay(300); //trying to elimintate flash
 
   // initialize ESP-NOW and check if there is an error (in that case cancel the setup)
   if (esp_now_init() != ESP_OK) {
@@ -538,8 +581,8 @@ void setup(){
     return;
   }
 
-  // // Register for a callback function that will be called when data is received.
-  // esp_now_register_recv_cb(OnDataRecv);
+  // Register for a callback function that will be called when data is received.
+  esp_now_register_recv_cb(OnDataRecv);
 
   ///////////////////////////FASTLED
   // FastLED.addLeds<WS2812B, LED_PIN_C, GRB>(leds_C, NUM_LEDS_C);
@@ -563,6 +606,52 @@ void setup(){
   /////////////////////////////////!MENU
 }
 
+void polizei() {
+  EVERY_N_MILLISECONDS(500) {
+    if (polizei_toggle) {
+      for (int i = 0; i < 60; i++) {
+        if (i < 30) {
+          array_of_LED_strips[0][i] = CRGB::Red;
+        } else {
+          array_of_LED_strips[0][i] = CRGB::Blue;
+        }
+      }
+
+      for (int i = 1; i < 7; i++) {
+        array_of_segments[i].flash_red();
+      }
+      for (int i = 7; i < 13; i++) {
+        array_of_segments[i].flash_blue();
+      }
+    } else {
+
+      for (int i = 0; i < 60; i++) {
+        if (i < 30) {
+          array_of_LED_strips[0][i] = CRGB::Blue;
+        } else {
+          array_of_LED_strips[0][i] = CRGB::Red;
+        }
+      }
+      for (int i = 1; i < 7; i++) {
+        array_of_segments[i].flash_blue();
+      }
+      for (int i = 7; i < 13; i++) {
+        array_of_segments[i].flash_red();
+      }    
+    }
+    polizei_toggle = !polizei_toggle;
+  }
+}
+
+void spin() {
+  EVERY_N_MILLISECONDS(100) {
+    if (tmp_indx < 0 || tmp_indx > 12) {
+      tmp_indx = 0;
+    }
+    array_of_segments[tmp_indx].flash();
+    tmp_indx ++;
+  }
+}
 
 void update_menu_state() {
   if (button_R.is_pressed()) {
@@ -588,17 +677,56 @@ void update_menu_state() {
 
 void loop(){
 
+  EVERY_N_MILLISECONDS(1000) {
+    Serial.println("loop running");
+  }
+
 
   
   update_menu_state();
 
 
+  if (!receive_state) {
 
-  EVERY_N_MILLISECONDS(1000) {
-    for (int i = 0; i < 7; i++) {
-      array_of_segments[i].flash();
+    switch(menu_index) {
+      case 7:
+      EVERY_N_MILLISECONDS(1000) {
+        array_of_segments[0].flash();
+      }
+      break;
+
+      case 6:
+        spin();
+      break;
+
+      case 5:
+        polizei();
+      break;
+
+      case 4:
+        //
+      break;
+
+      case 3:
+        //
+      break;
+
+      case 2:
+        //
+      break;
+
+      case 1:
+        //
+      break;
+
+      case 0:
+        //
+      break;
     }
+  } else {
+    // receive mode!
   }
+
   
   fadeToBlackBy(array_of_LED_strips[0], NUM_LEDS_C, GLOBAL_FADE_TIME); // gradually fade out all the ledstrips
   fadeToBlackBy(array_of_LED_strips[1], NUM_LEDS_Db, GLOBAL_FADE_TIME);
