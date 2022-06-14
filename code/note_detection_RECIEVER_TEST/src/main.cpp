@@ -373,10 +373,14 @@ int menu_index = NUM_LEDS_MENU-1;
 #define PIN_LED_TOGGLE_RECEIVE 19
 bool receive_state = true;
 
+const int TOTAL_NUM_LEDS = NUM_LEDS_C + (NUM_LEDS_Db + NUM_LEDS_D_Eb + NUM_LEDS_E_F_Gb)*2;
+
 
 /////////////////////////////////////////////////////ANIMATION VARS
 bool polizei_toggle = true;
 int tmp_indx = 0;
+int hue = 0;
+
 //////////////////////////////////////////////////////
 
 
@@ -548,6 +552,56 @@ Button button_L(PIN_BUTTON_L);
 Button button_R(PIN_BUTTON_R);
 Button button_recieve(PIN_BUTTON_TOGGLE_RECEIVE);
 
+
+void glider(int tone) {
+    for (int i = 0; i < NUM_LEDS_D_Eb; i++) {
+    array_of_LED_strips[2][i] = CRGB::Orange;
+    array_of_LED_strips[5][i] = CRGB::Orange;
+    delay(4);
+  }
+}
+
+void note_react(int tone) {
+  if(tone < 13 || tone >= 0) {
+    switch(menu_index) {
+      case 7:
+        Serial.println("flash!");
+        array_of_segments[tone].flash();
+      break;
+
+      case 6:
+        //
+        glider(tone);
+      break;
+
+      case 5:
+        //
+      break;
+
+      case 4:
+        //
+      break;
+
+      case 3:
+        //
+      break;
+
+      case 2:
+        //
+      break;
+
+      case 1:
+        //
+      break;
+
+      case 0:
+        //
+      break;
+    }
+  }
+
+}
+
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
                 // import mac value as a pointer
@@ -563,10 +617,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
   ///////////////////////////FASTLED
   if (receive_state) {
-    if(myData.tone < 13 || myData.tone >= 0) {
-      Serial.println("flash!");
-      array_of_segments[myData.tone].flash();
-    }
+    note_react(myData.tone);
   }
   ///////////////////////////!FASTLED
 }
@@ -608,6 +659,10 @@ void setup(){
   digitalWrite(PIN_LED_TOGGLE_RECEIVE, LOW);
   /////////////////////////////////!MENU
 }
+
+
+
+
 
 void polizei() {
   EVERY_N_MILLISECONDS(500) {
@@ -678,6 +733,41 @@ void update_menu_state() {
   ledstrip_menu[menu_index] = CRGB::Yellow;
 }
 
+
+void moving_rainbow() {
+  int val = 120;
+  int factor = 10;
+  for (int i = 0; i < NUM_LEDS_C; i++){
+    array_of_LED_strips[0][i] = CHSV(hue + i*factor, val, val);
+    // set led i to colour hue (number from 0-255), maximum saturation and value
+  }
+  for (int i = 0; i < NUM_LEDS_Db; i++){
+    array_of_LED_strips[1][i] = CHSV(hue + (i+1)*factor, val, val);
+    // set led i to colour hue (number from 0-255), maximum saturation and value
+  }
+  for (int i = NUM_LEDS_B-1; i >= 0; i--) {
+    array_of_LED_strips[6][i] = CHSV(hue + (NUM_LEDS_C-2)*factor - (i*factor), val, val);
+  }
+    for (int i = NUM_LEDS_Eb_Bb-1; i >= 0; i--) {
+    array_of_LED_strips[5][i] = CHSV(hue + (NUM_LEDS_C+NUM_LEDS_Eb_Bb)*factor +  + (i*factor), val, val);
+  }
+  //   for (int i = NUM_LEDS_G_Ab_A-1; i >= 0; i--) {
+  //   array_of_LED_strips[4][i] = CHSV(hue + NUM_LEDS_C*factor + NUM_LEDS_Eb_Bb + (i*factor), val, val);
+  // }
+
+
+
+  // for (int i = 0; i < NUM_LEDS_B; i++){
+  //   array_of_LED_strips[6][i] = CHSV(hue + (i*factor), val, val);
+  //   // set led i to colour hue (number from 0-255), maximum saturation and value
+  // }
+
+  // EVERY_N_MILLISECONDS(10){
+  //   // very useful timing method!! does not interupt the program run!!
+  //   hue++;
+  // }
+}
+
 void loop(){
 
   EVERY_N_MILLISECONDS(1000) {
@@ -707,7 +797,7 @@ void loop(){
       break;
 
       case 4:
-        //
+        moving_rainbow();
       break;
 
       case 3:
