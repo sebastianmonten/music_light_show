@@ -332,8 +332,11 @@ struct_message myData;
 ////////////////////////////////TIMING
 #define GLOBAL_FADE_TIME 3
 #define DEBOUNCE_TIME 5
-unsigned long prev_tone_time = 0;
+// unsigned long prev_tone_time = 0;
+unsigned long time_prev_tone[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#define TONE_DEBOUNCE 10 // milliseconds
 int prev_tone = 0;
+bool abort_curr_tones = false;
 ////////////////////////////////!TIMING
 
 
@@ -380,6 +383,8 @@ const int TOTAL_NUM_LEDS = NUM_LEDS_C + (NUM_LEDS_Db + NUM_LEDS_D_Eb + NUM_LEDS_
 bool polizei_toggle = true;
 int tmp_indx = 0;
 int hue = 0;
+
+
 
 //////////////////////////////////////////////////////
 
@@ -552,12 +557,51 @@ Button button_L(PIN_BUTTON_L);
 Button button_R(PIN_BUTTON_R);
 Button button_recieve(PIN_BUTTON_TOGGLE_RECEIVE);
 
+void single_tone_flash(int tone) {
+  Serial.println("flash!");
+  array_of_segments[tone].flash();
+  if (tone == 1) {
+    array_of_segments[12].flash();
+  }
+}
 
 void glider(int tone) {
+  hue = 60 + map(tone, 0, 11, 0, 255);
+  switch (tone % 3) {
+  case 0:
     for (int i = 0; i < NUM_LEDS_D_Eb; i++) {
-    array_of_LED_strips[2][i] = CRGB::Orange;
-    array_of_LED_strips[5][i] = CRGB::Orange;
-    delay(4);
+      if (abort_curr_tones) {break;}
+      array_of_LED_strips[2][i] = CHSV(hue, 255, 255);  // CRGB::Red;
+      array_of_LED_strips[5][i] = CHSV(hue, 255, 255);
+      delay(3);
+    }
+    for (int i = 0; i < NUM_LEDS_Db; i++) {
+      if (abort_curr_tones) {break;}
+      array_of_LED_strips[1][i] = CHSV(hue, 255, 255);
+      array_of_LED_strips[6][i] = CHSV(hue, 255, 255);
+      delay(3);
+    }
+    break;
+  
+  case 1:
+    for (int i = 0; i < NUM_LEDS_E_F_Gb; i++) {
+      if (abort_curr_tones) {break;}
+      array_of_LED_strips[3][i] = CHSV(hue, 255, 255);
+      array_of_LED_strips[4][i] = CHSV(hue, 255, 255);
+      delay(4);
+    }
+    break;
+  
+  case 2:
+    for (int i = 0; i < NUM_LEDS_C; i++) {
+      if (abort_curr_tones) {break;}
+      array_of_LED_strips[0][i] = CHSV(hue, 255, 255);
+      delay(4);
+    }
+    break;
+  
+  default:
+    break;
   }
 }
 
@@ -565,13 +609,11 @@ void note_react(int tone) {
   if(tone < 13 || tone >= 0) {
     switch(menu_index) {
       case 7:
-        Serial.println("flash!");
-        array_of_segments[tone].flash();
+        glider(tone);
       break;
 
       case 6:
-        //
-        glider(tone);
+        single_tone_flash(tone);
       break;
 
       case 5:
@@ -599,7 +641,7 @@ void note_react(int tone) {
       break;
     }
   }
-
+  abort_curr_tones = true;
 }
 
 // callback function that will be executed when data is received
@@ -735,8 +777,13 @@ void update_menu_state() {
 
 
 void moving_rainbow() {
-  int val = 120;
-  int factor = 10;
+  int val = 255;
+  int factor = 2;
+
+  for (int i = 0; i < NUM_LEDS_D_Eb; i++){
+    array_of_LED_strips[2][i] = CHSV(hue - (NUM_LEDS_D_Eb-1)*factor + i*factor, val, val);
+    // set led i to colour hue (number from 0-255), maximum saturation and value
+  }
   for (int i = 0; i < NUM_LEDS_C; i++){
     array_of_LED_strips[0][i] = CHSV(hue + i*factor, val, val);
     // set led i to colour hue (number from 0-255), maximum saturation and value
@@ -748,25 +795,23 @@ void moving_rainbow() {
   for (int i = NUM_LEDS_B-1; i >= 0; i--) {
     array_of_LED_strips[6][i] = CHSV(hue + (NUM_LEDS_C-2)*factor - (i*factor), val, val);
   }
-    for (int i = NUM_LEDS_Eb_Bb-1; i >= 0; i--) {
-    array_of_LED_strips[5][i] = CHSV(hue + (NUM_LEDS_C+NUM_LEDS_Eb_Bb)*factor +  + (i*factor), val, val);
+  for (int i = NUM_LEDS_Eb_Bb-1; i >= 0; i--) {
+    array_of_LED_strips[5][i] = CHSV(hue + (NUM_LEDS_C+NUM_LEDS_Eb_Bb+NUM_LEDS_Eb_Bb)*factor - (i*factor), val, val);
   }
-  //   for (int i = NUM_LEDS_G_Ab_A-1; i >= 0; i--) {
-  //   array_of_LED_strips[4][i] = CHSV(hue + NUM_LEDS_C*factor + NUM_LEDS_Eb_Bb + (i*factor), val, val);
-  // }
 
+  for (int i = 0; i < NUM_LEDS_G_Ab_A; i++) {
+    array_of_LED_strips[4][i] = CHSV(hue + i*factor, val, val);
+    int j = (NUM_LEDS_E_F_Gb-1) - i;
+    array_of_LED_strips[3][i] = CHSV(hue + j*factor, val, val);
+  }
 
-
-  // for (int i = 0; i < NUM_LEDS_B; i++){
-  //   array_of_LED_strips[6][i] = CHSV(hue + (i*factor), val, val);
-  //   // set led i to colour hue (number from 0-255), maximum saturation and value
-  // }
-
-  // EVERY_N_MILLISECONDS(10){
-  //   // very useful timing method!! does not interupt the program run!!
-  //   hue++;
-  // }
+  EVERY_N_MILLISECONDS(7){
+    // very useful timing method!! does not interupt the program run!!
+    hue++;
+  }
 }
+
+
 
 void loop(){
 
@@ -831,6 +876,7 @@ void loop(){
 
   // UPDATE ALL LEDS
   FastLED.show();
+  abort_curr_tones = false;
 }
 #endif
 
