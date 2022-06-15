@@ -566,7 +566,7 @@ void single_tone_flash(int tone) {
 }
 
 void glider(int tone) {
-  hue = 60 + map(tone, 0, 11, 0, 255);
+  int hue = 60 + map(tone, 0, 11, 0, 255);
   switch (tone % 3) {
   case 0:
     for (int i = 0; i < NUM_LEDS_D_Eb; i++) {
@@ -605,6 +605,85 @@ void glider(int tone) {
   }
 }
 
+
+void criss_cross(int tone) {
+  int hue_offset = 40;
+  int hue = 60 + map(tone, 0, 11, 0, 255);
+  int leng = 2;
+  switch (tone % 3)
+  {
+  case 0:
+    leng = 4;
+    for (int i = 0; i < NUM_LEDS_C; i++) {
+      if (abort_curr_tones) {break;}
+      fadeToBlackBy(array_of_LED_strips[0], NUM_LEDS_C, 70);
+      for (int j = 0; j < leng; j++) {
+        if (i-j >= 0) {
+          array_of_LED_strips[0][i-j] = CHSV(hue, 250, 250);
+          array_of_LED_strips[0][(NUM_LEDS_C-1) - i + j] = CHSV(hue + hue_offset, 250, 250);
+        }
+      }
+      delay(6);
+    }
+    break;
+
+  case 1:
+    for (int i = 0; i < NUM_LEDS_Db; i++) {
+      if (abort_curr_tones) {break;}
+      fadeToBlackBy(array_of_LED_strips[1], NUM_LEDS_Db, 70);
+      fadeToBlackBy(array_of_LED_strips[6], NUM_LEDS_Db, 70);
+
+      fadeToBlackBy(array_of_LED_strips[2], NUM_LEDS_D_Eb, 70);
+      fadeToBlackBy(array_of_LED_strips[5], NUM_LEDS_D_Eb, 70);
+
+      for (int j = 0; j < leng; j++) {
+        if (i-j >= 0) {
+          // LEFT SIDE
+          array_of_LED_strips[1][i-j] = CHSV(hue, 250, 250);
+          array_of_LED_strips[1][(NUM_LEDS_Db-1) - i + j] = CHSV(hue + hue_offset, 250, 250);
+
+          array_of_LED_strips[2][i-j] = CHSV(hue, 250, 250);
+          array_of_LED_strips[2][(NUM_LEDS_Db-1) - i + j] = CHSV(hue + hue_offset, 250, 250);
+
+          // RIGHT SIDE
+          array_of_LED_strips[6][i-j] = CHSV(hue + hue_offset, 250, 250);
+          array_of_LED_strips[6][(NUM_LEDS_Db-1) - i + j] = CHSV(hue, 250, 250);
+
+          array_of_LED_strips[5][i-j] = CHSV(hue + hue_offset, 250, 250);
+          array_of_LED_strips[5][(NUM_LEDS_Db-1) - i + j] = CHSV(hue, 250, 250);
+
+        }
+      }
+      delay(9);
+    }
+
+    break;
+
+  case 2:
+    for (int i = 0; i < NUM_LEDS_E_F_Gb; i++) {
+      if (abort_curr_tones) {break;}
+      fadeToBlackBy(array_of_LED_strips[3], NUM_LEDS_E_F_Gb, 80);
+      fadeToBlackBy(array_of_LED_strips[4], NUM_LEDS_E_F_Gb, 80);
+      for (int j = 0; j < leng; j++) {
+        if (i-j >= 0) {
+          // LEFT ARM
+          array_of_LED_strips[3][i-j] = CHSV(hue, 250, 250);
+          array_of_LED_strips[3][(NUM_LEDS_E_F_Gb-1) - i + j] = CHSV(hue + hue_offset, 250, 250);
+          // RIGHT ARM
+          array_of_LED_strips[4][i-j] = CHSV(hue, 250, 250);
+          array_of_LED_strips[4][(NUM_LEDS_E_F_Gb-1) - i + j] = CHSV(hue + hue_offset, 250, 250);
+        }
+      }
+      delay(10);
+    }
+    break;
+  
+  default:
+    //
+    break;
+  }
+}
+
 void note_react(int tone) {
   if(tone < 13 || tone >= 0) {
     switch(menu_index) {
@@ -613,11 +692,11 @@ void note_react(int tone) {
       break;
 
       case 6:
-        single_tone_flash(tone);
+        criss_cross(tone);
       break;
 
       case 5:
-        //
+        single_tone_flash(tone);
       break;
 
       case 4:
@@ -772,7 +851,7 @@ void update_menu_state() {
     digitalWrite(PIN_LED_TOGGLE_RECEIVE, LOW);
   }
   fadeToBlackBy(ledstrip_menu, NUM_LEDS_MENU, 50);
-  ledstrip_menu[menu_index] = CRGB::Yellow;
+  ledstrip_menu[menu_index] = CRGB(30, 30, 0);
 }
 
 
@@ -813,14 +892,7 @@ void moving_rainbow() {
 
 
 
-void loop(){
-
-  EVERY_N_MILLISECONDS(1000) {
-    Serial.println("loop running");
-  }
-
-
-  
+void loop(){  
   update_menu_state();
 
 
